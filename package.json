@@ -1,0 +1,25 @@
+{
+    "name": "tft-augur",
+    "version": "1.0.0",
+    "description": "This is a take two.",
+    "main": "index.js",
+    "scripts": {
+        "test": "jest"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/9kosho/TFT-augur.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/9kosho/TFT-augur/issues"
+    },
+    "homepage": "https://github.com/9kosho/TFT-augur#readme",
+    "dependencies": {
+        "axios": "^1.4.0",
+        "cheerio": "^1.0.0-rc.12",
+        "fs": "^0.0.1-security",
+        "jest": "^29.6.1"
+    }
+}
