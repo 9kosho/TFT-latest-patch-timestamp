@@ -96,10 +96,13 @@ async function generateFinalOutput(
     extractedDates,
     timestamp,
 ) {
+    // Get current timestamp in UTC if isMidPatchUpdate is true
+    const utcTimestamp = isMidPatchUpdate ? new Date().toISOString() : timestamp;
+
     return {
         title: firstPatchData.title,
         url: firstPatchData.url,
-        timestamp,
+        timestamp: utcTimestamp,
         midPatchUpdateDates: isMidPatchUpdate ? extractedDates : [],
     };
 }
