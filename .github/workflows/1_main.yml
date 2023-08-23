@@ -13,6 +13,8 @@ jobs:
         steps:
             - name: Check out the repository
               uses: actions/checkout@v2
+              with:
+                  token: ${{ secrets.GH_PAT }}
 
             - name: Set up Node.js
               uses: actions/setup-node@v2
@@ -34,4 +36,4 @@ jobs:
                   git config user.email github-actions@github.com
                   git add patch_version.json
                   git commit -m "Update patch_version.json" || echo "No changes to commit"
-                  git push
+                  git push https://${{secrets.GH_PAT}}@github.com/9kosho/TFT-latest-patch-timestamp.git main
