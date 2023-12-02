@@ -40,6 +40,15 @@ async function extractTimestamp(url) {
     return timestamp;
 }
 
+async function extractDatetime(url) {
+    const response = await axios.get(url);
+    const $ = cheerio.load(response.data);
+
+    const datetime = $("time").attr("datetime");
+
+    return datetime;
+}
+
 async function extractMidPatchUpdatesDates(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
@@ -123,6 +132,7 @@ async function generateFinalOutput(
         title: firstPatchData.title,
         url: firstPatchData.url,
         timestamp: utcTimestamp,
+        epoch: Date.parse(utcTimestamp),
         midPatchUpdateDates: isMidPatchUpdate ? extractedDates : [],
     };
 }
