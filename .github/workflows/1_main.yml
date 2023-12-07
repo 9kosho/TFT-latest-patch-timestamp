@@ -3,8 +3,8 @@ name: 1. Web Scraping Action
 on:
     workflow_dispatch: # Manual trigger
     schedule:
-        # Run the scraper every day at 6:00 AM and 6:00 PM PST
-        - cron: "0 2,14 * * *"
+        # Run the scraper at 6:00 AM, 12:00 PM, 6:00 PM, and 12:00 AM PST
+        - cron: "0 8,14,20,2 * * *"
 
 jobs:
     web_scraping:
