@@ -25,8 +25,10 @@ async function checkForMidPatchUpdates(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
-    const isMidPatchUpdatesPresent = $("h2:contains('Mid-Patch Updates')").length > 0;
-    const isMidPatchUpdatePresent = $("h2:contains('Mid-Patch Update')").length > 0;
+    const isMidPatchUpdatesPresent =
+        $("h2:contains('Mid-Patch Updates')").length > 0;
+    const isMidPatchUpdatePresent =
+        $("h2:contains('Mid-Patch Update')").length > 0;
 
     return isMidPatchUpdatesPresent || isMidPatchUpdatePresent;
 }
@@ -40,22 +42,13 @@ async function extractTimestamp(url) {
     return timestamp;
 }
 
-async function extractDatetime(url) {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
-
-    const datetime = $("time").attr("datetime");
-
-    return datetime;
-}
-
 async function extractMidPatchUpdatesDates(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
     const updates = [];
 
     const midPatchHeader = $(
-        "h2:contains('Mid-Patch Update'), h2:contains('Mid-Patch Updates')",
+        "h2:contains('Mid-Patch Update'), h2:contains('Mid-Patch Updates')"
     );
 
     if (midPatchHeader.length > 0) {
@@ -75,14 +68,17 @@ async function extractMidPatchUpdatesDates(url) {
             "DEC",
         ];
 
-        while (sibling.length > 0 && sibling.prop("tagName").toLowerCase() !== "header") {
+        while (
+            sibling.length > 0 &&
+            sibling.prop("tagName").toLowerCase() !== "header"
+        ) {
             let foundDate = false;
 
             sibling.find("h4").each((index, element) => {
                 if (!foundDate) {
                     const updateDate = $(element).text();
                     const isDate = monthNames.some((month) =>
-                        updateDate.startsWith(month),
+                        updateDate.startsWith(month)
                     );
 
                     if (isDate) {
@@ -103,7 +99,7 @@ async function generateFinalOutput(
     firstPatchData,
     isMidPatchUpdate,
     extractedDates,
-    timestamp,
+    timestamp
 ) {
     let latestDate;
 
@@ -114,7 +110,10 @@ async function generateFinalOutput(
             const currentYear = new Date().getFullYear();
             // Create a new date using the current year; assumes the environment is set to PST
             return new Date(
-                `${month} ${day.replace(/\D/g, "")}, ${currentYear} 12:00:00 GMT-0800`,
+                `${month} ${day.replace(
+                    /\D/g,
+                    ""
+                )}, ${currentYear} 12:00:00 GMT-0800`
             );
         });
 
@@ -123,7 +122,9 @@ async function generateFinalOutput(
         latestDate = parsedDates[0];
 
         // Adjust the time to be in UTC
-        latestDate = new Date(latestDate.getTime() + 8 * 60 * 60 * 1000).toISOString();
+        latestDate = new Date(
+            latestDate.getTime() + 8 * 60 * 60 * 1000
+        ).toISOString();
     }
 
     const utcTimestamp = isMidPatchUpdate ? latestDate : timestamp;
@@ -132,7 +133,8 @@ async function generateFinalOutput(
         title: firstPatchData.title,
         url: firstPatchData.url,
         timestamp: utcTimestamp,
-        epoch: Date.parse(utcTimestamp),
+        epoch: Date.parse(timestamp),
+        midPatchEpoch: Date.parse(utcTimestamp),
         midPatchUpdateDates: isMidPatchUpdate ? extractedDates : [],
     };
 }
