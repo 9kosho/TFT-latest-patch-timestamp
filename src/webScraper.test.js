@@ -1,8 +1,10 @@
 const {
     checkForMidPatchUpdates,
+    getDataFromUrl,
     scrapeArticleData,
     extractTimestamp,
     extractMidPatchUpdatesDates,
+    generateFinalOutput,
 } = require("./webScraper");
 
 describe("ArticleList Scraper", () => {
@@ -82,5 +84,41 @@ describe("Article Content Scraper", () => {
             "JULY 10TH, BALANCE CHANGES",
             "JUNE 29TH, BALANCE CHANGES",
         ]);
+    });
+});
+
+describe("Final Output Generator", () => {
+    test("validate check for finalOutput.epoch vs finalOutput.midPatchEpoch", async () => {
+        const patchNotesUrl =
+            "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-13-14-notes/";
+
+        const isMidPatchUpdate = await checkForMidPatchUpdates(patchNotesUrl);
+        const data = await getDataFromUrl(patchNotesUrl);
+
+        let updatesDates = [];
+        if (isMidPatchUpdate) {
+            updatesDates = await extractMidPatchUpdatesDates(patchNotesUrl);
+        } else {
+            console.log("No Mid-Patch Updates found.");
+        }
+
+        const timestamp = await extractTimestamp(patchNotesUrl);
+
+        const finalOutput = await generateFinalOutput(
+            data,
+            isMidPatchUpdate,
+            updatesDates,
+            timestamp
+        );
+
+        // check that if finalOutput.epoch and finalOutput.midPatchEpoch are not equal,
+        // then finalOutput.midPatchEpoch should be a greater value.
+        if (finalOutput.epoch !== finalOutput.midPatchEpoch) {
+            expect(finalOutput.midPatchEpoch).toBeGreaterThan(
+                finalOutput.epoch
+            );
+        }
+
+        expect(finalOutput).toBeDefined();
     });
 });

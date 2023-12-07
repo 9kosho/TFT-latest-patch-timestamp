@@ -21,6 +21,20 @@ async function scrapeArticleData(url) {
     return articles;
 }
 
+async function getDataFromUrl(url) {
+    const response = await axios.get(url);
+    const $ = cheerio.load(response.data);
+
+    const title = $("h1").text().trim();
+    const content = $("article").html();
+
+    return {
+        title: title,
+        content: content,
+        url: url,
+    };
+}
+
 async function checkForMidPatchUpdates(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
@@ -141,6 +155,7 @@ async function generateFinalOutput(
 
 module.exports = {
     checkForMidPatchUpdates,
+    getDataFromUrl,
     scrapeArticleData,
     extractTimestamp,
     extractMidPatchUpdatesDates,
