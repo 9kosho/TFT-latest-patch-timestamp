@@ -1,8 +1,10 @@
 {
   "title": "Teamfight Tactics patch 13.24 notes",
   "url": "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-13-24-notes/",
-  "timestamp": "2023-12-05T19:00:00.000Z",
+  "timestamp": "2023-12-14T04:00:00.000Z",
   "epoch": 1701802800000,
-  "midPatchEpoch": 1701802800000,
-  "midPatchUpdateDates": []
+  "midPatchEpoch": 1702526400000,
+  "midPatchUpdateDates": [
+    "DECEMBER 13TH"
+  ]
 }
