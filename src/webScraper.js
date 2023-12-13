@@ -152,12 +152,3 @@ export async function generateFinalOutput(
         midPatchUpdateDates: isMidPatchUpdate ? extractedDates : [],
     };
 }
-
-// module.exports = {
-//     checkForMidPatchUpdates,
-//     getDataFromUrl,
-//     scrapeArticleData,
-//     extractTimestamp,
-//     extractMidPatchUpdatesDates,
-//     generateFinalOutput,
-// };

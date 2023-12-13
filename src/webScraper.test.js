@@ -5,7 +5,7 @@ import {
     extractTimestamp,
     generateFinalOutput,
     getDataFromUrl,
-} from "./webScraper";
+} from "./webScraper.js";
 
 describe("ArticleList Scraper", () => {
     test("scrapes article data from the URL", async () => {

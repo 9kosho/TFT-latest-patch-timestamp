@@ -1,11 +1,11 @@
+import fs from "fs";
 import {
     checkForMidPatchUpdates,
     scrapeArticleData,
     extractMidPatchUpdatesDates,
     extractTimestamp,
     generateFinalOutput,
-} from "./webScraper";
-const fs = require("fs");
+} from "./webScraper.js";
 
 async function main() {
     const patchNotesUrl =
