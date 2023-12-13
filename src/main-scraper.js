@@ -1,11 +1,10 @@
-const {
+import {
     checkForMidPatchUpdates,
     scrapeArticleData,
     extractMidPatchUpdatesDates,
     extractTimestamp,
     generateFinalOutput,
-} = require("./webScraper");
-
+} from "./webScraper";
 const fs = require("fs");
 
 async function main() {
@@ -42,20 +41,28 @@ async function main() {
         firstPatchData,
         isMidPatchUpdate,
         updatesDates,
-        timestamp,
+        timestamp
     );
     console.log("Final Output:");
     console.log(finalOutput);
 
     // Write the final output to a file
-    console.log("\n----- Writing final output to outputs/patch_version.json -----");
-    fs.writeFile("patch_version.json", JSON.stringify(finalOutput, null, 2), (err) => {
-        if (err) {
-            console.error("Error writing to file:", err);
-        } else {
-            console.log("Successfully written to outputs/patch_version.json");
+    console.log(
+        "\n----- Writing final output to outputs/patch_version.json -----"
+    );
+    fs.writeFile(
+        "patch_version.json",
+        JSON.stringify(finalOutput, null, 2),
+        (err) => {
+            if (err) {
+                console.error("Error writing to file:", err);
+            } else {
+                console.log(
+                    "Successfully written to outputs/patch_version.json"
+                );
+            }
         }
-    });
+    );
 }
 
 main();
