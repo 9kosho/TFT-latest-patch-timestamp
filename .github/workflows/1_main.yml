@@ -28,7 +28,7 @@ jobs:
               run: npm test
 
             - name: Run scraper script
-              run: node src/main-scraper.js
+              run: npm start
 
             - name: Commit changes
               run: |
