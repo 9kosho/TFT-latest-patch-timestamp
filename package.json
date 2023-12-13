@@ -23,5 +23,9 @@
         "fs": "^0.0.1-security",
         "jest": "^29.6.1",
         "puppeteer": "^21.1.0"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.23.6",
+        "@babel/preset-env": "^7.23.6"
     }
 }

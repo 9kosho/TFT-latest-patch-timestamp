@@ -1,11 +1,11 @@
-const {
+import {
     checkForMidPatchUpdates,
-    getDataFromUrl,
     scrapeArticleData,
-    extractTimestamp,
     extractMidPatchUpdatesDates,
+    extractTimestamp,
     generateFinalOutput,
-} = require("./webScraper");
+    getDataFromUrl,
+} from "./webScraper";
 
 describe("ArticleList Scraper", () => {
     test("scrapes article data from the URL", async () => {

@@ -1,7 +1,7 @@
-const axios = require("axios");
-const cheerio = require("cheerio");
+import axios from "axios";
+import cheerio from "cheerio";
 
-async function scrapeArticleData(url) {
+export async function scrapeArticleData(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
     const articles = [];
@@ -21,7 +21,7 @@ async function scrapeArticleData(url) {
     return articles;
 }
 
-async function getDataFromUrl(url) {
+export async function getDataFromUrl(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
@@ -35,7 +35,7 @@ async function getDataFromUrl(url) {
     };
 }
 
-async function checkForMidPatchUpdates(url) {
+export async function checkForMidPatchUpdates(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
@@ -47,7 +47,7 @@ async function checkForMidPatchUpdates(url) {
     return isMidPatchUpdatesPresent || isMidPatchUpdatePresent;
 }
 
-async function extractTimestamp(url) {
+export async function extractTimestamp(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
@@ -56,7 +56,7 @@ async function extractTimestamp(url) {
     return timestamp;
 }
 
-async function extractMidPatchUpdatesDates(url) {
+export async function extractMidPatchUpdatesDates(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
     const updates = [];
@@ -109,7 +109,7 @@ async function extractMidPatchUpdatesDates(url) {
     return updates;
 }
 
-async function generateFinalOutput(
+export async function generateFinalOutput(
     firstPatchData,
     isMidPatchUpdate,
     extractedDates,
@@ -153,11 +153,11 @@ async function generateFinalOutput(
     };
 }
 
-module.exports = {
-    checkForMidPatchUpdates,
-    getDataFromUrl,
-    scrapeArticleData,
-    extractTimestamp,
-    extractMidPatchUpdatesDates,
-    generateFinalOutput,
-};
+// module.exports = {
+//     checkForMidPatchUpdates,
+//     getDataFromUrl,
+//     scrapeArticleData,
+//     extractTimestamp,
+//     extractMidPatchUpdatesDates,
+//     generateFinalOutput,
+// };
