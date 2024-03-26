@@ -1,8 +1,10 @@
 {
   "title": "Teamfight Tactics patch 14.6 notes",
   "url": "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-14-6-notes/",
-  "timestamp": "2024-03-19T18:00:00.000Z",
+  "timestamp": "2024-03-26T04:00:00.000Z",
   "epoch": 1710871200000,
-  "midPatchEpoch": 1710871200000,
-  "midPatchUpdateDates": []
+  "midPatchEpoch": 1711425600000,
+  "midPatchUpdateDates": [
+    "MARCH 25TH"
+  ]
 }
