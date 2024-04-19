@@ -1,8 +1,10 @@
 {
   "title": "Teamfight Tactics Patch 14.8 Notes",
   "url": "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-14-8-notes/",
-  "timestamp": "2024-04-16T18:00:00.000Z",
+  "timestamp": "2024-04-19T04:00:00.000Z",
   "epoch": 1713290400000,
-  "midPatchEpoch": 1713290400000,
-  "midPatchUpdateDates": []
+  "midPatchEpoch": 1713499200000,
+  "midPatchUpdateDates": [
+    "APRIL 18TH"
+  ]
 }
