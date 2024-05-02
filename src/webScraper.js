@@ -109,6 +109,23 @@ export async function extractMidPatchUpdatesDates(url) {
     return updates;
 }
 
+export async function getPatchVersion({ title, midPatchUpdateDates }) {
+    // Extract the numerical portion from the title using a regular expression
+    const patchNumber = title.match(/\d+\.\d+/)[0];
+
+    // Check the number of elements in midPatchUpdateDates
+    const midPatchCount = midPatchUpdateDates.length;
+
+    if (midPatchCount === 0) {
+        // If there are no elements, return the patch number as is
+        return patchNumber;
+    } else {
+        // If there are elements, append an incrementing letter
+        const letter = String.fromCharCode(97 + midPatchCount); // 'a' is ASCII 97
+        return `${patchNumber}${letter}`;
+    }
+}
+
 export async function generateFinalOutput(
     firstPatchData,
     isMidPatchUpdate,
@@ -142,6 +159,10 @@ export async function generateFinalOutput(
     }
 
     const utcTimestamp = isMidPatchUpdate ? latestDate : timestamp;
+    const patchVersion = await getPatchVersion({
+        title: firstPatchData.title,
+        midPatchUpdateDates: extractedDates,
+    });
 
     return {
         title: firstPatchData.title,
@@ -150,5 +171,6 @@ export async function generateFinalOutput(
         epoch: Date.parse(timestamp),
         midPatchEpoch: Date.parse(utcTimestamp),
         midPatchUpdateDates: isMidPatchUpdate ? extractedDates : [],
+        patchVersion,
     };
 }
