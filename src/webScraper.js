@@ -132,33 +132,9 @@ export async function generateFinalOutput(
     extractedDates,
     timestamp
 ) {
-    let latestDate;
+    const currentEpoch = new Date().toISOString();
 
-    if (isMidPatchUpdate) {
-        // Convert date strings to Date objects
-        const parsedDates = extractedDates.map((dateStr) => {
-            const [month, day] = dateStr.split(" ");
-            const currentYear = new Date().getFullYear();
-            // Create a new date using the current year; assumes the environment is set to PST
-            return new Date(
-                `${month} ${day.replace(
-                    /\D/g,
-                    ""
-                )}, ${currentYear} 12:00:00 GMT-0800`
-            );
-        });
-
-        // Sort to get the latest date
-        parsedDates.sort((a, b) => b - a);
-        latestDate = parsedDates[0];
-
-        // Adjust the time to be in UTC
-        latestDate = new Date(
-            latestDate.getTime() + 8 * 60 * 60 * 1000
-        ).toISOString();
-    }
-
-    const utcTimestamp = isMidPatchUpdate ? latestDate : timestamp;
+    const utcTimestamp = isMidPatchUpdate ? currentEpoch : timestamp;
     const patchVersion = await getPatchVersion({
         title: firstPatchData.title,
         midPatchUpdateDates: extractedDates,
