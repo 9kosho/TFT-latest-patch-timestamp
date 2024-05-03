@@ -10,7 +10,6 @@ import {
 async function main() {
     const patchNotesUrl =
         "https://www.leagueoflegends.com/en-us/news/tags/teamfight-tactics-patch-notes/";
-
     console.log("----- Running scrapeArticleData -----");
     const scrapedData = await scrapeArticleData(patchNotesUrl);
     console.log("Scraped Data:", scrapedData);
@@ -23,7 +22,6 @@ async function main() {
     console.log("Mid-Patch Updates present:", isMidPatchUpdate);
 
     let updatesDates = [];
-
     if (isMidPatchUpdate) {
         console.log("\n----- Running extractMidPatchUpdatesDates -----");
         updatesDates = await extractMidPatchUpdatesDates(firstPatchData.url);
@@ -46,23 +44,47 @@ async function main() {
     console.log("Final Output:");
     console.log(finalOutput);
 
-    // Write the final output to a file
-    console.log(
-        "\n----- Writing final output to outputs/patch_version.json -----"
-    );
-    fs.writeFile(
-        "patch_version.json",
-        JSON.stringify(finalOutput, null, 2),
-        (err) => {
-            if (err) {
-                console.error("Error writing to file:", err);
-            } else {
-                console.log(
-                    "Successfully written to outputs/patch_version.json"
-                );
+    // Read the existing patch_version.json file (if it exists)
+    let existingOutput = null;
+    try {
+        existingOutput = JSON.parse(
+            fs.readFileSync("patch_version.json", "utf8")
+        );
+    } catch (err) {
+        console.log("No existing patch_version.json found.");
+    }
+
+    // Compare the relevant values
+    const shouldWriteToFile =
+        !existingOutput ||
+        finalOutput.title !== existingOutput.title ||
+        finalOutput.url !== existingOutput.url ||
+        finalOutput.epoch !== existingOutput.epoch ||
+        JSON.stringify(finalOutput.midPatchUpdateDates) !==
+            JSON.stringify(existingOutput.midPatchUpdateDates);
+
+    if (shouldWriteToFile) {
+        console.log(
+            "\n----- Writing final output to outputs/patch_version.json -----"
+        );
+        fs.writeFile(
+            "patch_version.json",
+            JSON.stringify(finalOutput, null, 2),
+            (err) => {
+                if (err) {
+                    console.error("Error writing to file:", err);
+                } else {
+                    console.log(
+                        "Successfully written to outputs/patch_version.json"
+                    );
+                }
             }
-        }
-    );
+        );
+    } else {
+        console.log(
+            "\n----- Final output matches existing data, skipping file write -----"
+        );
+    }
 }
 
 main();
