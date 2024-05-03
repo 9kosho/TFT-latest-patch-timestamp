@@ -1,11 +1,9 @@
 {
-  "title": "Teamfight Tactics patch 14.9 notes",
-  "url": "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-14-9-notes/",
-  "timestamp": "2024-05-03T09:52:42.468Z",
-  "epoch": 1714500000000,
-  "midPatchEpoch": 1714729962468,
-  "midPatchUpdateDates": [
-    "MAY 2ND"
-  ],
-  "patchVersion": "14.9b"
+    "title": "Teamfight Tactics patch 14.9 notes",
+    "url": "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-14-9-notes/",
+    "timestamp": "2024-05-03T09:52:42.468Z",
+    "epoch": 1714500000000,
+    "midPatchEpoch": 1714780800000,
+    "midPatchUpdateDates": ["MAY 2ND"],
+    "patchVersion": "14.9b"
 }
