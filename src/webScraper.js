@@ -133,7 +133,6 @@ export async function generateFinalOutput(
     timestamp
 ) {
     const currentEpoch = new Date().toISOString();
-
     const utcTimestamp = isMidPatchUpdate ? currentEpoch : timestamp;
     const patchVersion = await getPatchVersion({
         title: firstPatchData.title,

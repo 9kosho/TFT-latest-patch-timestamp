@@ -10,39 +10,44 @@ import {
 async function main() {
     const patchNotesUrl =
         "https://www.leagueoflegends.com/en-us/news/tags/teamfight-tactics-patch-notes/";
+
     console.log("----- Running scrapeArticleData -----");
     const scrapedData = await scrapeArticleData(patchNotesUrl);
     console.log("Scraped Data:", scrapedData);
 
-    // Replace the specificPatchUrl with the first URL from the scrapedData array
-    const firstPatchData = scrapedData[0];
-
-    console.log("\n----- Running checkForMidPatchUpdates -----");
-    const isMidPatchUpdate = await checkForMidPatchUpdates(firstPatchData.url);
-    console.log("Mid-Patch Updates present:", isMidPatchUpdate);
-
-    let updatesDates = [];
-    if (isMidPatchUpdate) {
-        console.log("\n----- Running extractMidPatchUpdatesDates -----");
-        updatesDates = await extractMidPatchUpdatesDates(firstPatchData.url);
-        console.log("Mid-Patch Updates Dates:", updatesDates);
-    } else {
-        console.log("No Mid-Patch Updates found.");
+    if (scrapedData.length === 0) {
+        console.log("No data found. Exiting.");
+        return;
     }
 
-    console.log("\n----- Running extractTimestamp-----");
-    const timestamp = await extractTimestamp(firstPatchData.url);
-    console.log("Timestamp:", timestamp);
-
-    console.log("\n----- Generating final output -----");
-    const finalOutput = await generateFinalOutput(
-        firstPatchData,
-        isMidPatchUpdate,
-        updatesDates,
-        timestamp
+    const patchData = scrapedData[0];
+    const wwwUrl = patchData.url;
+    const tftUrl = patchData.url.replace(
+        "https://www.",
+        "https://teamfighttactics."
     );
-    console.log("Final Output:");
-    console.log(finalOutput);
+
+    const [wwwOutput, tftOutput] = await Promise.all([
+        generateFinalOutput(
+            { ...patchData, url: wwwUrl },
+            await checkForMidPatchUpdates(wwwUrl),
+            await extractMidPatchUpdatesDates(wwwUrl),
+            await extractTimestamp(wwwUrl)
+        ),
+        generateFinalOutput(
+            { ...patchData, url: tftUrl },
+            await checkForMidPatchUpdates(tftUrl),
+            await extractMidPatchUpdatesDates(tftUrl),
+            await extractTimestamp(tftUrl)
+        ),
+    ]);
+
+    const maxPatchData =
+        compareVersions(wwwOutput.patchVersion, tftOutput.patchVersion) >= 0
+            ? wwwOutput
+            : tftOutput;
+
+    console.log("Max Patch Data:", maxPatchData);
 
     // Read the existing patch_version.json file (if it exists)
     let existingOutput = null;
@@ -57,10 +62,10 @@ async function main() {
     // Compare the relevant values
     const shouldWriteToFile =
         !existingOutput ||
-        finalOutput.title !== existingOutput.title ||
-        finalOutput.url !== existingOutput.url ||
-        finalOutput.epoch !== existingOutput.epoch ||
-        JSON.stringify(finalOutput.midPatchUpdateDates) !==
+        maxPatchData.title !== existingOutput.title ||
+        maxPatchData.url !== existingOutput.url ||
+        maxPatchData.epoch !== existingOutput.epoch ||
+        JSON.stringify(maxPatchData.midPatchUpdateDates) !==
             JSON.stringify(existingOutput.midPatchUpdateDates);
 
     if (shouldWriteToFile) {
@@ -69,7 +74,7 @@ async function main() {
         );
         fs.writeFile(
             "patch_version.json",
-            JSON.stringify(finalOutput, null, 2),
+            JSON.stringify(maxPatchData, null, 2),
             (err) => {
                 if (err) {
                     console.error("Error writing to file:", err);
@@ -85,6 +90,27 @@ async function main() {
             "\n----- Final output matches existing data, skipping file write -----"
         );
     }
+}
+function compareVersions(v1, v2) {
+    const v1Parts = v1.match(/\d+|\D+/g);
+    const v2Parts = v2.match(/\d+|\D+/g);
+
+    for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+        const p1 = v1Parts[i];
+        const p2 = v2Parts[i];
+
+        if (/^\d+$/.test(p1) && /^\d+$/.test(p2)) {
+            const n1 = parseInt(p1);
+            const n2 = parseInt(p2);
+            if (n1 !== n2) {
+                return n1 > n2 ? 1 : -1;
+            }
+        } else if (p1 !== p2) {
+            return p1 < p2 ? 1 : -1;
+        }
+    }
+
+    return 0;
 }
 
 main();
