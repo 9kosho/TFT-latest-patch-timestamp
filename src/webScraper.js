@@ -1,23 +1,43 @@
 import axios from "axios";
 import cheerio from "cheerio";
+import puppeteer from "puppeteer";
 
 export async function scrapeArticleData(url) {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
-    const articles = [];
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.goto(url);
 
-    $("li").each((index, element) => {
-        const title = $(element).find("h2").text();
-        const datetime = $(element).find("time").attr("datetime");
-        const articleUrl = $(element).find("a").attr("href");
+    // Wait for the articles to load (adjust the selector if needed)
+    await page.waitForSelector(
+        'a[href^="https://teamfighttactics.leagueoflegends.com/en-us/news/"]'
+    );
 
-        articles.push({
-            title: title,
-            datetime: datetime,
-            url: `https://www.leagueoflegends.com${articleUrl}`,
+    const articles = await page.evaluate(() => {
+        const elements = document.querySelectorAll(
+            'a[href^="https://teamfighttactics.leagueoflegends.com/en-us/news/"]'
+        );
+        return Array.from(elements).map((element) => {
+            const titleElement = element.querySelector(
+                'div[data-testid="card-title"]'
+            );
+            const title = titleElement ? titleElement.textContent.trim() : "";
+
+            const datetimeElement = element.querySelector("time");
+            const datetime = datetimeElement
+                ? datetimeElement.getAttribute("datetime")
+                : "";
+
+            const articleUrl = element.getAttribute("href") || "";
+
+            return {
+                title: title,
+                datetime: datetime,
+                url: articleUrl,
+            };
         });
     });
 
+    await browser.close();
     return articles;
 }
 
