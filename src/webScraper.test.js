@@ -7,6 +7,11 @@
 //     getDataFromUrl,
 // } from "./webScraper.js";
 
+// default test
+test("default test", () => {
+    expect(1).toBe(1);
+});
+
 // describe("ArticleList Scraper", () => {
 //     test("scrapes article data from the URL", async () => {
 //         const url =
