@@ -8,11 +8,13 @@ import {
 } from "./webScraper.js";
 
 async function main() {
-    const patchNotesUrl =
-        "https://www.leagueoflegends.com/en-us/news/tags/teamfight-tactics-patch-notes/";
+    const patchNotesUrls = [
+        "https://teamfighttactics.leagueoflegends.com/en-us/news/game-updates/",
+        // "https://www.leagueoflegends.com/en-us/news/game-updates/",
+    ];
 
     console.log("----- Running scrapeArticleData -----");
-    const scrapedData = await scrapeArticleData(patchNotesUrl);
+    const scrapedData = await scrapeArticleData(patchNotesUrls);
     console.log("Scraped Data:", scrapedData);
 
     if (scrapedData.length === 0) {
@@ -20,32 +22,29 @@ async function main() {
         return;
     }
 
-    const patchData = scrapedData[0];
-    const wwwUrl = patchData.url;
-    const tftUrl = patchData.url.replace(
-        "https://www.",
-        "https://teamfighttactics."
+    const outputs = await Promise.all(
+        scrapedData.map(async (article) => {
+            const isMidPatchUpdate = await checkForMidPatchUpdates(article.url);
+            const extractedDates = await extractMidPatchUpdatesDates(
+                article.url
+            );
+            const timestamp = await extractTimestamp(article.url);
+
+            return generateFinalOutput(
+                article,
+                isMidPatchUpdate,
+                extractedDates,
+                timestamp
+            );
+        })
     );
 
-    const [wwwOutput, tftOutput] = await Promise.all([
-        generateFinalOutput(
-            { ...patchData, url: wwwUrl },
-            await checkForMidPatchUpdates(wwwUrl),
-            await extractMidPatchUpdatesDates(wwwUrl),
-            await extractTimestamp(wwwUrl)
-        ),
-        generateFinalOutput(
-            { ...patchData, url: tftUrl },
-            await checkForMidPatchUpdates(tftUrl),
-            await extractMidPatchUpdatesDates(tftUrl),
-            await extractTimestamp(tftUrl)
-        ),
-    ]);
-
-    const maxPatchData =
-        compareVersions(wwwOutput.patchVersion, tftOutput.patchVersion) >= 0
-            ? wwwOutput
-            : tftOutput;
+    // Find the output with the highest patch version
+    const maxPatchData = outputs.reduce((max, output) =>
+        compareVersions(output.patchVersion, max.patchVersion) > 0
+            ? output
+            : max
+    );
 
     console.log("Max Patch Data:", maxPatchData);
 
@@ -69,9 +68,7 @@ async function main() {
             JSON.stringify(existingOutput.midPatchUpdateDates);
 
     if (shouldWriteToFile) {
-        console.log(
-            "\n----- Writing final output to outputs/patch_version.json -----"
-        );
+        console.log("\n----- Writing final output to patch_version.json -----");
         fs.writeFile(
             "patch_version.json",
             JSON.stringify(maxPatchData, null, 2),
@@ -79,9 +76,7 @@ async function main() {
                 if (err) {
                     console.error("Error writing to file:", err);
                 } else {
-                    console.log(
-                        "Successfully written to outputs/patch_version.json"
-                    );
+                    console.log("Successfully written to patch_version.json");
                 }
             }
         );
@@ -91,6 +86,7 @@ async function main() {
         );
     }
 }
+
 function compareVersions(v1, v2) {
     const v1Parts = v1.match(/\d+|\D+/g);
     const v2Parts = v2.match(/\d+|\D+/g);

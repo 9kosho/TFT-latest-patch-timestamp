@@ -1,46 +1,130 @@
 import axios from "axios";
 import cheerio from "cheerio";
 import puppeteer from "puppeteer";
+export async function scrapeArticleData(urls) {
+    console.log("Starting scrapeArticleData function");
+    const browser = await puppeteer.launch({
+        headless: true,
+    });
+    console.log("Browser launched in visible mode");
 
-export async function scrapeArticleData(url) {
-    const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto(url);
+    console.log("New page created");
 
-    // Wait for the articles to load (adjust the selector if needed)
-    await page.waitForSelector(
-        'a[href^="https://teamfighttactics.leagueoflegends.com/en-us/news/"]'
+    await page.setExtraHTTPHeaders({
+        Connection: "keep-alive",
+        "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    });
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    let allArticles = [];
+
+    for (const url of urls) {
+        console.log(`Navigating to URL: ${url}`);
+        await page.goto(url, { waitUntil: "networkidle0" });
+        console.log("Page loaded, waiting for article grid");
+
+        try {
+            await page.waitForSelector('div[class="grid-content"]', {
+                timeout: 10000,
+            });
+            console.log("Article grid found");
+
+            const articleCount = await page.evaluate(() => {
+                const grid = document.querySelector(
+                    'div[class="grid-content"]'
+                );
+                return grid.querySelectorAll('div > a[role="button"]').length;
+            });
+            console.log(`Number of articles found: ${articleCount}`);
+
+            if (articleCount < 12) {
+                console.warn(
+                    `Expected 12 articles, but found ${articleCount}. Proceeding with scraping.`
+                );
+            }
+        } catch (error) {
+            console.error(`Error processing page ${url}: ${error.message}`);
+            continue;
+        }
+
+        const articles = await page.evaluate((baseUrl) => {
+            console.log("Starting page evaluation");
+            const grid = document.querySelector('div[class="grid-content"]');
+            const elements = grid.querySelectorAll('div > a[role="button"]');
+            console.log(`Found ${elements.length} article elements`);
+
+            return Array.from(elements).map((element, index) => {
+                console.log(`Processing article element ${index + 1}`);
+
+                const titleElement = element.querySelector(
+                    '[data-testid="card-title"]'
+                );
+                const title = titleElement
+                    ? titleElement.textContent.trim()
+                    : "";
+                console.log(`Title: "${title}"`);
+
+                const datetimeElement = element.querySelector("time");
+                const datetime = datetimeElement
+                    ? datetimeElement.getAttribute("datetime")
+                    : "";
+                console.log(`Datetime: ${datetime}`);
+
+                const relativeUrl = element.getAttribute("href") || "";
+                const fullUrl = new URL(relativeUrl, baseUrl).href;
+                console.log(`URL: ${fullUrl}`);
+
+                return {
+                    title: title,
+                    datetime: datetime,
+                    url: fullUrl,
+                };
+            });
+        }, url); // Pass the current URL as baseUrl to the evaluate function
+
+        console.log(`Scraped ${articles.length} articles from ${url}`);
+        console.log(
+            "Articles scraped from this URL:",
+            JSON.stringify(articles, null, 2)
+        );
+        allArticles = allArticles.concat(articles);
+    }
+
+    console.log(
+        "Scraping completed. The browser will remain open for inspection."
+    );
+    console.log("Please close the browser manually when you're done.");
+
+    console.log(`Total articles scraped: ${allArticles.length}`);
+    console.log("All scraped articles:", JSON.stringify(allArticles, null, 2));
+
+    const filteredArticles = allArticles.filter(
+        (article) =>
+            article.title.toLowerCase().includes("teamfight tactics") &&
+            article.title.toLowerCase().includes("patch")
+    );
+    console.log(
+        `Articles containing "Teamfight Tactics" and "patch": ${filteredArticles.length}`
+    );
+    console.log(
+        "Filtered articles:",
+        JSON.stringify(filteredArticles, null, 2)
     );
 
-    const articles = await page.evaluate(() => {
-        const elements = document.querySelectorAll(
-            'a[href^="https://teamfighttactics.leagueoflegends.com/en-us/news/"]'
-        );
-        return Array.from(elements).map((element) => {
-            const titleElement = element.querySelector(
-                'div[data-testid="card-title"]'
-            );
-            const title = titleElement ? titleElement.textContent.trim() : "";
+    filteredArticles.sort(
+        (a, b) => new Date(b.datetime) - new Date(a.datetime)
+    );
+    console.log("Articles sorted by date");
+    console.log(
+        "Sorted and filtered articles:",
+        JSON.stringify(filteredArticles, null, 2)
+    );
 
-            const datetimeElement = element.querySelector("time");
-            const datetime = datetimeElement
-                ? datetimeElement.getAttribute("datetime")
-                : "";
-
-            const articleUrl = element.getAttribute("href") || "";
-
-            return {
-                title: title,
-                datetime: datetime,
-                url: articleUrl,
-            };
-        });
-    });
-
-    await browser.close();
-    return articles;
+    console.log("scrapeArticleData function completed");
+    return filteredArticles;
 }
-
 export async function getDataFromUrl(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
