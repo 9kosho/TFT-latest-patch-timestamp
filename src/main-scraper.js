@@ -19,7 +19,7 @@ async function main() {
 
     if (scrapedData.length === 0) {
         console.log("No data found. Exiting.");
-        return;
+        process.exit(0);
     }
 
     const outputs = await Promise.all(
@@ -69,21 +69,17 @@ async function main() {
 
     if (shouldWriteToFile) {
         console.log("\n----- Writing final output to patch_version.json -----");
-        fs.writeFile(
+        fs.writeFileSync(
             "patch_version.json",
-            JSON.stringify(maxPatchData, null, 2),
-            (err) => {
-                if (err) {
-                    console.error("Error writing to file:", err);
-                } else {
-                    console.log("Successfully written to patch_version.json");
-                }
-            }
+            JSON.stringify(maxPatchData, null, 2)
         );
+        console.log("Successfully written to patch_version.json");
+        process.exit(0);
     } else {
         console.log(
             "\n----- Final output matches existing data, skipping file write -----"
         );
+        process.exit(0);
     }
 }
 
@@ -109,4 +105,7 @@ function compareVersions(v1, v2) {
     return 0;
 }
 
-main();
+main().catch((error) => {
+    console.error("An error occurred:", error);
+    process.exit(1);
+});
