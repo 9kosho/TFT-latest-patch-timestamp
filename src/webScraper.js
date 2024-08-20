@@ -26,14 +26,17 @@ export async function scrapeArticleData(urls) {
         console.log("Page loaded, waiting for article grid");
 
         try {
-            await page.waitForSelector('div[class="grid-content"]', {
-                timeout: 10000,
-            });
+            await page.waitForSelector(
+                'section[data-testid="article-card-grid"]',
+                {
+                    timeout: 10000,
+                }
+            );
             console.log("Article grid found");
 
             const articleCount = await page.evaluate(() => {
                 const grid = document.querySelector(
-                    'div[class="grid-content"]'
+                    'section[data-testid="article-card-grid"]'
                 );
                 return grid.querySelectorAll('div > a[role="button"]').length;
             });
@@ -51,7 +54,9 @@ export async function scrapeArticleData(urls) {
 
         const articles = await page.evaluate((baseUrl) => {
             console.log("Starting page evaluation");
-            const grid = document.querySelector('div[class="grid-content"]');
+            const grid = document.querySelector(
+                'section[data-testid="article-card-grid"]'
+            );
             const elements = grid.querySelectorAll('div > a[role="button"]');
             console.log(`Found ${elements.length} article elements`);
 
