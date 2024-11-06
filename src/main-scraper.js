@@ -9,7 +9,7 @@ import {
 
 async function main() {
     const patchNotesUrls = [
-        "https://www.leagueoflegends.com/en-us/news/tags/teamfight-tactics-patch-notes/",
+        "https://teamfighttactics.leagueoflegends.com/en-us/news/",
         // "https://www.leagueoflegends.com/en-us/news/game-updates/",
     ];
 
