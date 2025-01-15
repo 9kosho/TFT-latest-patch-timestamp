@@ -5,6 +5,7 @@ export async function scrapeArticleData(urls) {
     console.log("Starting scrapeArticleData function");
     const browser = await puppeteer.launch({
         headless: true,
+        args: ["--no-sandbox"],
     });
     console.log("Browser launched in visible mode");
 
