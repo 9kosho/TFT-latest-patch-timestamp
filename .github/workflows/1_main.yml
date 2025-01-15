@@ -9,10 +9,13 @@ on:
 jobs:
     web_scraping:
         runs-on: ubuntu-latest
+        container:
+            image: node:18
+            options: --init
 
         steps:
             - name: Check out the repository
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                   token: ${{ secrets.GH_PAT }}
 
