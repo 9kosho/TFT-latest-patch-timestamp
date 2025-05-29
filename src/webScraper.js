@@ -240,7 +240,8 @@ export async function generateFinalOutput(
     firstPatchData,
     isMidPatchUpdate,
     extractedDates,
-    timestamp
+    timestamp,
+    override = false
 ) {
     const currentEpoch = new Date().toISOString();
     const utcTimestamp = isMidPatchUpdate ? currentEpoch : timestamp;
@@ -249,12 +250,16 @@ export async function generateFinalOutput(
         midPatchUpdateDates: extractedDates,
     });
 
+    // If override is true, use current time for both epoch values
+    const epochValue = override ? Date.now() : Date.parse(timestamp);
+    const midPatchEpochValue = override ? Date.now() : Date.parse(utcTimestamp);
+
     return {
         title: firstPatchData.title,
         url: firstPatchData.url,
-        timestamp: utcTimestamp,
-        epoch: Date.parse(timestamp),
-        midPatchEpoch: Date.parse(utcTimestamp),
+        timestamp: override ? currentEpoch : utcTimestamp,
+        epoch: epochValue,
+        midPatchEpoch: midPatchEpochValue,
         midPatchUpdateDates: isMidPatchUpdate ? extractedDates : [],
         patchVersion,
     };

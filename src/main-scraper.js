@@ -8,6 +8,13 @@ import {
 } from "./webScraper.js";
 
 async function main() {
+    // Parse command line arguments
+    const args = process.argv.slice(2);
+    const override = args.includes('--override');
+    
+    if (override) {
+        console.log("Override mode enabled: epoch and midPatchEpoch will use current time");
+    }
     const patchNotesUrls = [
         "https://teamfighttactics.leagueoflegends.com/en-us/news/",
         // "https://www.leagueoflegends.com/en-us/news/game-updates/",
@@ -34,7 +41,8 @@ async function main() {
                 article,
                 isMidPatchUpdate,
                 extractedDates,
-                timestamp
+                timestamp,
+                override
             );
         })
     );
