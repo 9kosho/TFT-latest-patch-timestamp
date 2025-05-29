@@ -98,10 +98,7 @@ export async function scrapeArticleData(urls) {
         allArticles = allArticles.concat(articles);
     }
 
-    console.log(
-        "Scraping completed. The browser will remain open for inspection."
-    );
-    console.log("Please close the browser manually when you're done.");
+    console.log("Scraping completed.");
 
     console.log(`Total articles scraped: ${allArticles.length}`);
     console.log("All scraped articles:", JSON.stringify(allArticles, null, 2));
@@ -128,6 +125,9 @@ export async function scrapeArticleData(urls) {
         JSON.stringify(filteredArticles, null, 2)
     );
 
+    await browser.close();
+    console.log("Browser closed");
+    
     console.log("scrapeArticleData function completed");
     return filteredArticles;
 }

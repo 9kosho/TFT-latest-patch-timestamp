@@ -19,7 +19,7 @@ async function main() {
 
     if (scrapedData.length === 0) {
         console.log("No data found. Exiting.");
-        process.exit(0);
+        return;
     }
 
     const outputs = await Promise.all(
@@ -74,12 +74,10 @@ async function main() {
             JSON.stringify(maxPatchData, null, 2)
         );
         console.log("Successfully written to patch_version.json");
-        process.exit(0);
     } else {
         console.log(
             "\n----- Final output matches existing data, skipping file write -----"
         );
-        process.exit(0);
     }
 }
 
@@ -107,5 +105,5 @@ function compareVersions(v1, v2) {
 
 main().catch((error) => {
     console.error("An error occurred:", error);
-    process.exit(1);
+    throw error;
 });
