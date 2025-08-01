@@ -4,7 +4,8 @@
     "allow": [
       "Bash(node:*)",
       "Bash(npm run start:*)",
-      "Bash(npx puppeteer browsers:*)"
+      "Bash(npx puppeteer browsers:*)",
+      "Bash(npm run prettier:*)"
     ],
     "deny": []
   }

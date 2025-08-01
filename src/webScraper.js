@@ -145,28 +145,31 @@ export async function getDataFromUrl(url) {
     };
 }
 
+function findMidPatchHeaders($) {
+    // First try legacy patterns
+    let headers = $(
+        "h2:contains('Mid-Patch Update'), h2:contains('Mid-Patch Updates')"
+    );
+
+    // Then try versioned pattern (e.g., "15.1B PATCH UPDATES")
+    if (headers.length === 0) {
+        headers = $("h2").filter(function () {
+            return /\d+\.\d+[A-Za-z]+\s+PATCH\s+UPDATES?/i.test(
+                $(this).text().replace(/\s+/g, ' ').trim()
+            );
+        });
+    }
+    return headers;
+}
+
 export async function checkForMidPatchUpdates(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
-    const isMidPatchUpdatesPresent =
-        $("h2:contains('Mid-Patch Updates')").length > 0;
-    const isMidPatchUpdatePresent =
-        $("h2:contains('Mid-Patch Update')").length > 0;
+    // Use helper function to find mid-patch headers
+    const midPatchHeaders = findMidPatchHeaders($);
 
-    // Check for pattern like "15.1B PATCH UPDATES"
-    const versionedPatchUpdate =
-        $("h2").filter(function () {
-            const text = $(this).text();
-            // Matches patterns like "15.1B PATCH UPDATES" or "14.2C PATCH UPDATE"
-            return /\d+\.\d+[A-Z]\s+PATCH\s+UPDATE/i.test(text);
-        }).length > 0;
-
-    return (
-        isMidPatchUpdatesPresent ||
-        isMidPatchUpdatePresent ||
-        versionedPatchUpdate
-    );
+    return midPatchHeaders.length > 0;
 }
 
 export async function extractTimestamp(url) {
@@ -183,18 +186,8 @@ export async function extractMidPatchUpdatesDates(url) {
     const $ = cheerio.load(response.data);
     const updates = [];
 
-    // Find mid-patch headers (including new versioned pattern)
-    let midPatchHeader = $(
-        "h2:contains('Mid-Patch Update'), h2:contains('Mid-Patch Updates')"
-    );
-
-    // If not found, check for versioned pattern like "15.1B PATCH UPDATES"
-    if (midPatchHeader.length === 0) {
-        midPatchHeader = $("h2").filter(function () {
-            const text = $(this).text();
-            return /\d+\.\d+[A-Z]\s+PATCH\s+UPDATE/i.test(text);
-        });
-    }
+    // Use helper function to find mid-patch headers
+    const midPatchHeader = findMidPatchHeaders($);
 
     if (midPatchHeader.length > 0) {
         let sibling = midPatchHeader.parent("header").next();

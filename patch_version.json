@@ -1,11 +1,9 @@
 {
-  "title": "Teamfight Tactics patch 15.1 notes (2025)",
-  "url": "https://teamfighttactics.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-15-1-notes-2025",
-  "timestamp": "2025-08-01T01:55:12.106Z",
-  "epoch": 1753812000000,
-  "midPatchEpoch": 1754013312106,
-  "midPatchUpdateDates": [
-    "AUGMENTS "
-  ],
-  "patchVersion": "15.1b"
+    "title": "Teamfight Tactics patch 15.1 notes (2025)",
+    "url": "https://teamfighttactics.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-15-1-notes-2025",
+    "timestamp": "2025-08-01T01:55:12.106Z",
+    "epoch": 1753812000000,
+    "midPatchEpoch": 1753949333584,
+    "midPatchUpdateDates": ["AUGMENTS "],
+    "patchVersion": "15.1b"
 }
