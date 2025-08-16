@@ -162,14 +162,31 @@ function findMidPatchHeaders($) {
     return headers;
 }
 
+function findPatchDateHeaders($) {
+    // Look for h2 elements with id in format "patch-{month}-{day}"
+    // Example: <h2 id="patch-august-13">AUGUST 13TH</h2>
+    const patchDateHeaders = $("h2[id^='patch-']").filter(function () {
+        const id = $(this).attr('id');
+        // Check if id matches pattern: patch-{month}-{day}
+        const patchDatePattern = /^patch-[a-z]+-\d+$/i;
+        return patchDatePattern.test(id);
+    });
+    
+    return patchDateHeaders;
+}
+
 export async function checkForMidPatchUpdates(url) {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
     // Use helper function to find mid-patch headers
     const midPatchHeaders = findMidPatchHeaders($);
+    
+    // Also check for patch date headers (new detection method)
+    const patchDateHeaders = findPatchDateHeaders($);
 
-    return midPatchHeaders.length > 0;
+    // Return true if either detection method finds mid-patch indicators
+    return midPatchHeaders.length > 0 || patchDateHeaders.length > 0;
 }
 
 export async function extractTimestamp(url) {
@@ -228,6 +245,19 @@ export async function extractMidPatchUpdatesDates(url) {
 
             sibling = sibling.next();
         }
+    }
+
+    // Also check for patch date headers (new pattern)
+    const patchDateHeaders = findPatchDateHeaders($);
+    
+    if (patchDateHeaders.length > 0) {
+        patchDateHeaders.each((index, element) => {
+            const dateText = $(element).text().trim();
+            // Only add if not already in updates array
+            if (!updates.includes(dateText)) {
+                updates.push(dateText);
+            }
+        });
     }
 
     return updates;
