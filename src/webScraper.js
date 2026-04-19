@@ -151,10 +151,10 @@ function findMidPatchHeaders($) {
         "h2:contains('Mid-Patch Update'), h2:contains('Mid-Patch Updates')"
     );
 
-    // Then try versioned pattern (e.g., "15.1B PATCH UPDATES")
+    // Then try versioned pattern (e.g., "15.1B PATCH UPDATES" or "17.1B PATCH")
     if (headers.length === 0) {
         headers = $("h2").filter(function () {
-            return /\d+\.\d+[A-Za-z]+\s+PATCH\s+UPDATES?/i.test(
+            return /\d+\.\d+[A-Za-z]+\s+PATCH(\s+UPDATES?)?\b/i.test(
                 $(this).text().replace(/\s+/g, ' ').trim()
             );
         });
@@ -208,20 +208,10 @@ export async function extractMidPatchUpdatesDates(url) {
 
     if (midPatchHeader.length > 0) {
         let sibling = midPatchHeader.parent("header").next();
-        const monthNames = [
-            "JAN",
-            "FEB",
-            "MAR",
-            "APR",
-            "MAY",
-            "JUN",
-            "JUL",
-            "AUG",
-            "SEP",
-            "OCT",
-            "NOV",
-            "DEC",
-        ];
+        // Match an h4 that begins with a month name followed by a day number,
+        // e.g. "MAY 4TH" or "JULY 10TH, BALANCE CHANGES". The trailing space+digit
+        // requirement avoids false positives like "AUGMENTS" matching "AUG".
+        const dateRegex = /^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\s+\d/i;
 
         while (
             sibling.length > 0 &&
@@ -231,12 +221,8 @@ export async function extractMidPatchUpdatesDates(url) {
 
             sibling.find("h4").each((index, element) => {
                 if (!foundDate) {
-                    const updateDate = $(element).text();
-                    const isDate = monthNames.some((month) =>
-                        updateDate.startsWith(month)
-                    );
-
-                    if (isDate) {
+                    const updateDate = $(element).text().trim();
+                    if (dateRegex.test(updateDate)) {
                         updates.push(updateDate);
                         foundDate = true; // Mark that the date was found and stop adding subsequent dates within the sibling div
                     }
@@ -244,6 +230,18 @@ export async function extractMidPatchUpdatesDates(url) {
             });
 
             sibling = sibling.next();
+        }
+
+        // If the header itself carries the patch letter (e.g. "17.1B PATCH")
+        // and no h4 date entries were captured, record the header text so the
+        // mid-patch is still reflected in the output and patch version suffix.
+        if (updates.length === 0) {
+            midPatchHeader.each((index, element) => {
+                const headerText = $(element).text().replace(/\s+/g, ' ').trim();
+                if (/\d+\.\d+[A-Za-z]+\s+PATCH\b/i.test(headerText)) {
+                    updates.push(headerText);
+                }
+            });
         }
     }
 
@@ -266,6 +264,19 @@ export async function extractMidPatchUpdatesDates(url) {
 export async function getPatchVersion({ title, midPatchUpdateDates }) {
     // Extract the numerical portion from the title using a regular expression
     const patchNumber = title.match(/\d+\.\d+/)[0];
+
+    // If any entry carries an explicit letter (e.g. "17.1B PATCH"),
+    // use it directly rather than counting entries.
+    let explicitLetter = "";
+    for (const entry of midPatchUpdateDates) {
+        const m = entry.match(/\d+\.\d+([A-Za-z])/);
+        if (m && m[1].toLowerCase() > explicitLetter) {
+            explicitLetter = m[1].toLowerCase();
+        }
+    }
+    if (explicitLetter) {
+        return `${patchNumber}${explicitLetter}`;
+    }
 
     // Check the number of elements in midPatchUpdateDates
     const midPatchCount = midPatchUpdateDates.length;
