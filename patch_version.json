@@ -1,9 +1,12 @@
 {
   "title": "Teamfight Tactics patch 17.4",
   "url": "https://teamfighttactics.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-17-4",
-  "timestamp": "2026-05-27T18:00:00.000Z",
+  "timestamp": "2026-06-02T02:48:34.020Z",
   "epoch": 1779904800000,
-  "midPatchEpoch": 1779904800000,
-  "midPatchUpdateDates": [],
-  "patchVersion": "17.4"
+  "midPatchEpoch": 1780368514020,
+  "midPatchUpdateDates": [
+    "JUNE 1ST",
+    "MAY 29TH"
+  ],
+  "patchVersion": "17.4c"
 }
