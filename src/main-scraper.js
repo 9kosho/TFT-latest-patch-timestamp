@@ -1,9 +1,7 @@
 import fs from "fs";
 import {
-    checkForMidPatchUpdates,
+    analyzePatchArticle,
     scrapeArticleData,
-    extractMidPatchUpdatesDates,
-    extractTimestamp,
     generateFinalOutput,
 } from "./webScraper.js";
 
@@ -31,16 +29,13 @@ async function main() {
 
     const outputs = await Promise.all(
         scrapedData.map(async (article) => {
-            const isMidPatchUpdate = await checkForMidPatchUpdates(article.url);
-            const extractedDates = await extractMidPatchUpdatesDates(
+            const { timestamp, midPatchDates } = await analyzePatchArticle(
                 article.url
             );
-            const timestamp = await extractTimestamp(article.url);
 
             return generateFinalOutput(
                 article,
-                isMidPatchUpdate,
-                extractedDates,
+                midPatchDates,
                 timestamp,
                 override
             );

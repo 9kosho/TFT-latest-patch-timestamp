@@ -131,191 +131,181 @@ export async function scrapeArticleData(urls) {
     console.log("scrapeArticleData function completed");
     return filteredArticles;
 }
-export async function getDataFromUrl(url) {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
 
-    const title = $("h1").text().trim();
-    const content = $("article").html();
+const MONTH_INDEX = {
+    JAN: 0,
+    FEB: 1,
+    MAR: 2,
+    APR: 3,
+    MAY: 4,
+    JUN: 5,
+    JUL: 6,
+    AUG: 7,
+    SEP: 8,
+    OCT: 9,
+    NOV: 10,
+    DEC: 11,
+};
 
-    return {
-        title: title,
-        content: content,
-        url: url,
-    };
+// Matches a dated mid-patch entry heading, e.g. "MAY 4TH", "AUGUST 28TH",
+// or "JULY 10TH, BALANCE CHANGES". Requiring a digit after the month name
+// avoids false positives like "AUGMENTS" matching "AUG".
+const DATE_ENTRY_REGEX =
+    /^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\s+(\d{1,2})/i;
+
+// Matches a section header that carries the patch letter itself,
+// e.g. "17.1B PATCH" or "15.1B PATCH UPDATES".
+const VERSIONED_HEADER_REGEX = /\d+\.\d+([A-Za-z])\s+PATCH(\s+UPDATES?)?\b/i;
+
+function normalizeText(text) {
+    return text.replace(/\s+/g, " ").trim();
 }
 
 function findMidPatchHeaders($) {
-    // First try legacy patterns
-    let headers = $(
-        "h2:contains('Mid-Patch Update'), h2:contains('Mid-Patch Updates')"
-    );
-
-    // Then try versioned pattern (e.g., "15.1B PATCH UPDATES" or "17.1B PATCH")
-    if (headers.length === 0) {
-        headers = $("h2").filter(function () {
-            return /\d+\.\d+[A-Za-z]+\s+PATCH(\s+UPDATES?)?\b/i.test(
-                $(this).text().replace(/\s+/g, ' ').trim()
-            );
-        });
-    }
-    return headers;
-}
-
-function findPatchDateHeaders($) {
-    // Look for h2 elements with id in format "patch-{month}-{day}"
-    // Example: <h2 id="patch-august-13">AUGUST 13TH</h2>
-    const patchDateHeaders = $("h2[id^='patch-']").filter(function () {
-        const id = $(this).attr('id');
-        // Check if id matches pattern: patch-{month}-{day}
-        const patchDatePattern = /^patch-[a-z]+-\d+$/i;
-        return patchDatePattern.test(id);
+    return $("h2").filter(function () {
+        const text = normalizeText($(this).text());
+        return (
+            /mid-?patch update/i.test(text) || VERSIONED_HEADER_REGEX.test(text)
+        );
     });
-    
-    return patchDateHeaders;
 }
 
-export async function checkForMidPatchUpdates(url) {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
+export function extractMidPatchDates($) {
+    const entries = [];
+    const seen = new Set();
+    const collect = (text) => {
+        const normalized = normalizeText(text);
+        const key = normalized.toUpperCase();
+        if (DATE_ENTRY_REGEX.test(normalized) && !seen.has(key)) {
+            seen.add(key);
+            entries.push(normalized);
+        }
+    };
 
-    // Use helper function to find mid-patch headers
-    const midPatchHeaders = findMidPatchHeaders($);
-    
-    // Also check for patch date headers (new detection method)
-    const patchDateHeaders = findPatchDateHeaders($);
+    const sectionHeaders = findMidPatchHeaders($);
 
-    // Return true if either detection method finds mid-patch indicators
-    return midPatchHeaders.length > 0 || patchDateHeaders.length > 0;
-}
-
-export async function extractTimestamp(url) {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
-
-    const timestamp = $("time").attr("datetime");
-
-    return timestamp;
-}
-
-export async function extractMidPatchUpdatesDates(url) {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
-    const updates = [];
-
-    // Use helper function to find mid-patch headers
-    const midPatchHeader = findMidPatchHeaders($);
-
-    if (midPatchHeader.length > 0) {
-        let sibling = midPatchHeader.parent("header").next();
-        // Match an h4 that begins with a month name followed by a day number,
-        // e.g. "MAY 4TH" or "JULY 10TH, BALANCE CHANGES". The trailing space+digit
-        // requirement avoids false positives like "AUGMENTS" matching "AUG".
-        const dateRegex = /^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\s+\d/i;
-
-        while (
-            sibling.length > 0 &&
-            sibling.prop("tagName").toLowerCase() !== "header"
-        ) {
-            let foundDate = false;
-
-            sibling.find("h4").each((index, element) => {
-                if (!foundDate) {
-                    const updateDate = $(element).text().trim();
-                    if (dateRegex.test(updateDate)) {
-                        updates.push(updateDate);
-                        foundDate = true; // Mark that the date was found and stop adding subsequent dates within the sibling div
-                    }
-                }
+    // Dated entry headings within the section, scanning sibling content
+    // blocks until the next section header. Riot has used both h4 and,
+    // since set 17, h3 for these.
+    sectionHeaders.each((index, element) => {
+        let sibling = $(element).closest("header").next();
+        while (sibling.length > 0 && !sibling.is("header")) {
+            sibling.find("h3, h4").each((i, heading) => {
+                collect($(heading).text());
             });
-
             sibling = sibling.next();
         }
+    });
 
-        // If the header itself carries the patch letter (e.g. "17.1B PATCH")
-        // and no h4 date entries were captured, record the header text so the
-        // mid-patch is still reflected in the output and patch version suffix.
-        if (updates.length === 0) {
-            midPatchHeader.each((index, element) => {
-                const headerText = $(element).text().replace(/\s+/g, ' ').trim();
-                if (/\d+\.\d+[A-Za-z]+\s+PATCH\b/i.test(headerText)) {
-                    updates.push(headerText);
-                }
-            });
-        }
-    }
+    // Alternate format where each mid-patch is its own dated article
+    // section, e.g. <h2 id="patch-august-13">AUGUST 13TH</h2>.
+    $("h2[id^='patch-']").each((index, element) => {
+        collect($(element).text());
+    });
 
-    // Also check for patch date headers (new pattern)
-    const patchDateHeaders = findPatchDateHeaders($);
-    
-    if (patchDateHeaders.length > 0) {
-        patchDateHeaders.each((index, element) => {
-            const dateText = $(element).text().trim();
-            // Only add if not already in updates array
-            if (!updates.includes(dateText)) {
-                updates.push(dateText);
+    // A versioned section header with no dated entries still marks a
+    // mid-patch; keep its text so the letter reaches getPatchVersion.
+    if (entries.length === 0) {
+        sectionHeaders.each((index, element) => {
+            const text = normalizeText($(element).text());
+            if (VERSIONED_HEADER_REGEX.test(text)) {
+                entries.push(text);
             }
         });
     }
 
-    return updates;
+    return entries;
 }
 
-export async function getPatchVersion({ title, midPatchUpdateDates }) {
-    // Extract the numerical portion from the title using a regular expression
+// Resolves a dated entry to the end of its day in Pacific time (08:00 UTC
+// the next day, covering PST), an upper bound on when the update deployed.
+// The year is whichever candidate lands closest to the patch epoch, which
+// handles December patches with January mid-patches.
+export function midPatchDateEndMs(entry, patchEpochMs) {
+    const match = DATE_ENTRY_REGEX.exec(normalizeText(entry));
+    if (!match) {
+        return null;
+    }
+    const month = MONTH_INDEX[match[1].slice(0, 3).toUpperCase()];
+    const day = Number(match[2]);
+    const referenceYear = new Date(patchEpochMs).getUTCFullYear();
+    return [referenceYear - 1, referenceYear, referenceYear + 1]
+        .map((year) => Date.UTC(year, month, day + 1, 8))
+        .reduce((best, ms) =>
+            Math.abs(ms - patchEpochMs) < Math.abs(best - patchEpochMs)
+                ? ms
+                : best
+        );
+}
+
+export async function analyzePatchArticle(url) {
+    const response = await axios.get(url);
+    const $ = cheerio.load(response.data);
+
+    return {
+        timestamp: $("time").attr("datetime"),
+        midPatchDates: extractMidPatchDates($),
+    };
+}
+
+export function getPatchVersion({ title, midPatchUpdateDates }) {
     const patchNumber = title.match(/\d+\.\d+/)[0];
 
     // If any entry carries an explicit letter (e.g. "17.1B PATCH"),
     // use it directly rather than counting entries.
     let explicitLetter = "";
     for (const entry of midPatchUpdateDates) {
-        const m = entry.match(/\d+\.\d+([A-Za-z])/);
-        if (m && m[1].toLowerCase() > explicitLetter) {
-            explicitLetter = m[1].toLowerCase();
+        const match = entry.match(/\d+\.\d+([A-Za-z])/);
+        if (match && match[1].toLowerCase() > explicitLetter) {
+            explicitLetter = match[1].toLowerCase();
         }
     }
     if (explicitLetter) {
         return `${patchNumber}${explicitLetter}`;
     }
 
-    // Check the number of elements in midPatchUpdateDates
-    const midPatchCount = midPatchUpdateDates.length;
-
-    if (midPatchCount === 0) {
-        // If there are no elements, return the patch number as is
+    if (midPatchUpdateDates.length === 0) {
         return patchNumber;
-    } else {
-        // If there are elements, append an incrementing letter
-        const letter = String.fromCharCode(97 + midPatchCount); // 'a' is ASCII 97
-        return `${patchNumber}${letter}`;
     }
+    // One mid-patch entry means the b-patch, two the c-patch, and so on.
+    const letter = String.fromCharCode(98 + midPatchUpdateDates.length - 1);
+    return `${patchNumber}${letter}`;
 }
 
-export async function generateFinalOutput(
+export function generateFinalOutput(
     firstPatchData,
-    isMidPatchUpdate,
-    extractedDates,
+    midPatchDates,
     timestamp,
     override = false
 ) {
-    const currentEpoch = new Date().toISOString();
-    const utcTimestamp = isMidPatchUpdate ? currentEpoch : timestamp;
-    const patchVersion = await getPatchVersion({
+    const patchVersion = getPatchVersion({
         title: firstPatchData.title,
-        midPatchUpdateDates: extractedDates,
+        midPatchUpdateDates: midPatchDates,
     });
-
-    // If override is true, use current time for both epoch values
     const epochValue = override ? Date.now() : Date.parse(timestamp);
-    const midPatchEpochValue = override ? Date.now() : Date.parse(utcTimestamp);
+
+    // Cut at the earliest provable time the newest mid-patch was live: the
+    // end of its published day, or the moment we first saw it, whichever is
+    // earlier. Falls back to scrape time when no entry parses to a date.
+    let midPatchEpochValue = epochValue;
+    if (override) {
+        midPatchEpochValue = Date.now();
+    } else if (midPatchDates.length > 0) {
+        const dateEnds = midPatchDates
+            .map((entry) => midPatchDateEndMs(entry, epochValue))
+            .filter((ms) => ms !== null);
+        const latestEnd =
+            dateEnds.length > 0 ? Math.max(...dateEnds) : Date.now();
+        midPatchEpochValue = Math.min(Date.now(), latestEnd);
+    }
 
     return {
         title: firstPatchData.title,
         url: firstPatchData.url,
-        timestamp: override ? currentEpoch : utcTimestamp,
+        timestamp: new Date(midPatchEpochValue).toISOString(),
         epoch: epochValue,
         midPatchEpoch: midPatchEpochValue,
-        midPatchUpdateDates: isMidPatchUpdate ? extractedDates : [],
+        midPatchUpdateDates: midPatchDates,
         patchVersion,
     };
 }

@@ -1,129 +1,154 @@
-// import {
-//     checkForMidPatchUpdates,
-//     scrapeArticleData,
-//     extractMidPatchUpdatesDates,
-//     extractTimestamp,
-//     generateFinalOutput,
-//     getDataFromUrl,
-// } from "./webScraper.js";
+import cheerio from "cheerio";
+import {
+    extractMidPatchDates,
+    midPatchDateEndMs,
+    getPatchVersion,
+    generateFinalOutput,
+} from "./webScraper.js";
 
-// default test
-test("default test", () => {
-    expect(1).toBe(1);
+const EPOCH_18_1 = Date.parse("2026-08-25T18:00:00.000Z");
+
+describe("extractMidPatchDates", () => {
+    test("set 17+ markup: h3 date entries under the Mid-Patch Updates header", () => {
+        const $ = cheerio.load(`
+            <article>
+                <header><h2 id="patch-midpatch-updates">Mid-Patch Updates</h2></header>
+                <div class="content-border"><div>
+                    <h3>AUGUST 28TH</h3><h4>NEW FEATURE</h4><h4>BUG FIXES</h4>
+                </div></div>
+                <div class="content-border"><div>
+                    <h3>AUGUST 27TH</h3><h4>BUG FIXES</h4>
+                </div></div>
+                <header><h2 id="patch-systems">SYSTEMS</h2></header>
+                <div class="content-border"><div><h4>MAY 9TH</h4></div></div>
+            </article>
+        `);
+        expect(extractMidPatchDates($)).toEqual(["AUGUST 28TH", "AUGUST 27TH"]);
+    });
+
+    test("legacy markup: h4 date entries under the Mid-Patch Updates header", () => {
+        const $ = cheerio.load(`
+            <article>
+                <header><h2>Mid-Patch Updates</h2></header>
+                <div><h4>JULY 10TH, BALANCE CHANGES</h4><ul><li>x</li></ul></div>
+                <div><h4>JUNE 29TH, BALANCE CHANGES</h4></div>
+            </article>
+        `);
+        expect(extractMidPatchDates($)).toEqual([
+            "JULY 10TH, BALANCE CHANGES",
+            "JUNE 29TH, BALANCE CHANGES",
+        ]);
+    });
+
+    test("standalone dated section headers", () => {
+        const $ = cheerio.load(`
+            <article>
+                <header><h2 id="patch-august-13">AUGUST 13TH</h2></header>
+                <div><h4>BUG FIXES</h4></div>
+                <header><h2 id="patch-large-changes">LARGE CHANGES</h2></header>
+            </article>
+        `);
+        expect(extractMidPatchDates($)).toEqual(["AUGUST 13TH"]);
+    });
+
+    test("versioned header with no dated entries is kept as the entry", () => {
+        const $ = cheerio.load(`
+            <article>
+                <header><h2>15.1B PATCH UPDATES</h2></header>
+                <div><h4>BUG FIXES</h4></div>
+            </article>
+        `);
+        expect(extractMidPatchDates($)).toEqual(["15.1B PATCH UPDATES"]);
+    });
+
+    test("no mid-patch section yields no entries", () => {
+        const $ = cheerio.load(`
+            <article>
+                <header><h2 id="patch-systems">SYSTEMS</h2></header>
+                <div><h4>AUGMENTS</h4></div>
+            </article>
+        `);
+        expect(extractMidPatchDates($)).toEqual([]);
+    });
 });
 
-// describe("ArticleList Scraper", () => {
-//     test("scrapes article data from the URL", async () => {
-//         const url =
-//             "https://www.leagueoflegends.com/en-us/news/tags/teamfight-tactics-patch-notes/";
-//         const result = await scrapeArticleData(url);
+describe("midPatchDateEndMs", () => {
+    test("resolves to the end of the entry's day in Pacific time", () => {
+        expect(midPatchDateEndMs("AUGUST 28TH", EPOCH_18_1)).toBe(
+            Date.UTC(2026, 7, 29, 8)
+        );
+    });
 
-//         expect(result).toBeDefined();
+    test("January mid-patch of a December patch lands in the next year", () => {
+        const decemberEpoch = Date.parse("2025-12-20T18:00:00.000Z");
+        expect(midPatchDateEndMs("JANUARY 3RD", decemberEpoch)).toBe(
+            Date.UTC(2026, 0, 4, 8)
+        );
+    });
 
-//         const article = result[0];
+    test("returns null for entries without a date", () => {
+        expect(midPatchDateEndMs("15.1B PATCH UPDATES", EPOCH_18_1)).toBeNull();
+    });
+});
 
-//         expect(article).toHaveProperty("title");
-//         expect(article).toHaveProperty("datetime");
-//         expect(article).toHaveProperty("url");
-//     });
+describe("getPatchVersion", () => {
+    const title = "Teamfight Tactics patch 18.1";
 
-//     test("expects a non-empty title for the scraped article", async () => {
-//         const url =
-//             "https://www.leagueoflegends.com/en-us/news/tags/teamfight-tactics-patch-notes/";
-//         const result = await scrapeArticleData(url);
+    test("no entries keeps the base version", () => {
+        expect(getPatchVersion({ title, midPatchUpdateDates: [] })).toBe(
+            "18.1"
+        );
+    });
 
-//         const article = result[0];
+    test("entry count maps to the patch letter", () => {
+        expect(
+            getPatchVersion({ title, midPatchUpdateDates: ["AUGUST 27TH"] })
+        ).toBe("18.1b");
+        expect(
+            getPatchVersion({
+                title,
+                midPatchUpdateDates: ["AUGUST 28TH", "AUGUST 27TH"],
+            })
+        ).toBe("18.1c");
+    });
 
-//         expect(article.title).toBeDefined();
-//         expect(article.title).not.toBe("");
-//     });
-// });
+    test("an explicit letter overrides the count", () => {
+        expect(
+            getPatchVersion({
+                title: "Teamfight Tactics patch 15.1",
+                midPatchUpdateDates: ["15.1B PATCH UPDATES"],
+            })
+        ).toBe("15.1b");
+    });
+});
 
-// describe("Article Scraper", () => {
-//     test("checks if <h2> field with 'Mid-Patch Updates' is present", async () => {
-//         const url =
-//             "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-13-14-notes/";
-//         const result = await checkForMidPatchUpdates(url);
-//         expect(result).toBeDefined();
-//     });
-// });
+describe("generateFinalOutput", () => {
+    const article = {
+        title: "Teamfight Tactics patch 18.1",
+        url: "https://example.invalid/18-1",
+    };
+    const timestamp = "2026-08-25T18:00:00.000Z";
 
-// describe("Article Timestamp Scraper", () => {
-//     test("extracts timestamp from the article", async () => {
-//         const url =
-//             "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-13-14-notes/";
-//         const result = await extractTimestamp(url);
+    test("without mid-patches the epochs match the article timestamp", () => {
+        const output = generateFinalOutput(article, [], timestamp);
+        expect(output.epoch).toBe(EPOCH_18_1);
+        expect(output.midPatchEpoch).toBe(EPOCH_18_1);
+        expect(output.patchVersion).toBe("18.1");
+    });
 
-//         expect(result).toBeDefined();
-//         expect(result).not.toBe("");
-//     });
-// });
-
-// describe("Article Content Scraper", () => {
-//     test("extracts <h4> text after 'Mid-Patch Updates'", async () => {
-//         const url =
-//             "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-13-14-notes/";
-//         const result = await extractMidPatchUpdatesDates(url);
-
-//         expect(result).toBeDefined();
-//         expect(result.length).toBeGreaterThan(0);
-//         expect(result[0]).not.toBe("");
-//     });
-
-//     test('extracts ["MAY 4TH"] from 13.9', async () => {
-//         const url =
-//             "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-13-9-notes/";
-//         const result = await extractMidPatchUpdatesDates(url);
-
-//         expect(result).toHaveLength(1);
-//         expect(result).toEqual(["MAY 4TH"]);
-//     });
-
-//     test('extracts ["JULY 10TH, BALANCE CHANGES", "JUNE 29TH, BALANCE CHANGES"] from 13.13', async () => {
-//         const url =
-//             "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-13-13-notes/";
-//         const result = await extractMidPatchUpdatesDates(url);
-
-//         expect(result).toHaveLength(2);
-//         expect(result).toEqual([
-//             "JULY 10TH, BALANCE CHANGES",
-//             "JUNE 29TH, BALANCE CHANGES",
-//         ]);
-//     });
-// });
-
-// describe("Final Output Generator", () => {
-//     test("validate check for finalOutput.epoch vs finalOutput.midPatchEpoch", async () => {
-//         const patchNotesUrl =
-//             "https://www.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-13-14-notes/";
-
-//         const isMidPatchUpdate = await checkForMidPatchUpdates(patchNotesUrl);
-//         const data = await getDataFromUrl(patchNotesUrl);
-
-//         let updatesDates = [];
-//         if (isMidPatchUpdate) {
-//             updatesDates = await extractMidPatchUpdatesDates(patchNotesUrl);
-//         } else {
-//             console.log("No Mid-Patch Updates found.");
-//         }
-
-//         const timestamp = await extractTimestamp(patchNotesUrl);
-
-//         const finalOutput = await generateFinalOutput(
-//             data,
-//             isMidPatchUpdate,
-//             updatesDates,
-//             timestamp
-//         );
-
-//         // check that if finalOutput.epoch and finalOutput.midPatchEpoch are not equal,
-//         // then finalOutput.midPatchEpoch should be a greater value.
-//         if (finalOutput.epoch !== finalOutput.midPatchEpoch) {
-//             expect(finalOutput.midPatchEpoch).toBeGreaterThan(
-//                 finalOutput.epoch
-//             );
-//         }
-
-//         expect(finalOutput).toBeDefined();
-//     });
-// });
+    test("midPatchEpoch is capped at the end of the newest entry's day", () => {
+        const output = generateFinalOutput(
+            article,
+            ["AUGUST 28TH", "AUGUST 27TH"],
+            timestamp
+        );
+        expect(output.midPatchEpoch).toBe(
+            Math.min(Date.now(), Date.UTC(2026, 7, 29, 8))
+        );
+        expect(output.patchVersion).toBe("18.1c");
+        expect(output.midPatchUpdateDates).toEqual([
+            "AUGUST 28TH",
+            "AUGUST 27TH",
+        ]);
+    });
+});
