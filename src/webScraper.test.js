@@ -79,6 +79,12 @@ describe("midPatchDateEndMs", () => {
         );
     });
 
+    test("an entry listing several dates resolves to its last date", () => {
+        expect(
+            midPatchDateEndMs("AUGUST 31ST AND SEPTEMBER 1ST", EPOCH_18_1)
+        ).toBe(Date.UTC(2026, 8, 2, 8));
+    });
+
     test("January mid-patch of a December patch lands in the next year", () => {
         const decemberEpoch = Date.parse("2025-12-20T18:00:00.000Z");
         expect(midPatchDateEndMs("JANUARY 3RD", decemberEpoch)).toBe(
@@ -136,17 +142,16 @@ describe("generateFinalOutput", () => {
         expect(output.patchVersion).toBe("18.1");
     });
 
-    test("midPatchEpoch is capped at the end of the newest entry's day", () => {
+    test("midPatchEpoch is the end of the newest entry's last day", () => {
         const output = generateFinalOutput(
             article,
-            ["AUGUST 28TH", "AUGUST 27TH"],
+            ["AUGUST 31ST AND SEPTEMBER 1ST", "AUGUST 28TH", "AUGUST 27TH"],
             timestamp
         );
-        expect(output.midPatchEpoch).toBe(
-            Math.min(Date.now(), Date.UTC(2026, 7, 29, 8))
-        );
-        expect(output.patchVersion).toBe("18.1c");
+        expect(output.midPatchEpoch).toBe(Date.UTC(2026, 8, 2, 8));
+        expect(output.patchVersion).toBe("18.1d");
         expect(output.midPatchUpdateDates).toEqual([
+            "AUGUST 31ST AND SEPTEMBER 1ST",
             "AUGUST 28TH",
             "AUGUST 27TH",
         ]);

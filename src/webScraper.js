@@ -147,11 +147,16 @@ const MONTH_INDEX = {
     DEC: 11,
 };
 
-// Matches a dated mid-patch entry heading, e.g. "MAY 4TH", "AUGUST 28TH",
-// or "JULY 10TH, BALANCE CHANGES". Requiring a digit after the month name
-// avoids false positives like "AUGMENTS" matching "AUG".
-const DATE_ENTRY_REGEX =
-    /^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\s+(\d{1,2})/i;
+// Matches one date, e.g. "MAY 4TH" or "AUGUST 28TH". Requiring a digit
+// after the month name avoids false positives like "AUGMENTS" matching "AUG".
+const DATE_PATTERN =
+    /(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\s+(\d{1,2})/;
+
+// A dated mid-patch entry heading starts with a date, e.g. "AUGUST 28TH"
+// or "JULY 10TH, BALANCE CHANGES".
+const DATE_ENTRY_REGEX = new RegExp(`^${DATE_PATTERN.source}`, "i");
+
+const ALL_DATES_REGEX = new RegExp(DATE_PATTERN.source, "gi");
 
 // Matches a section header that carries the patch letter itself,
 // e.g. "17.1B PATCH" or "15.1B PATCH UPDATES".
@@ -219,15 +224,18 @@ export function extractMidPatchDates($) {
 
 // Resolves a dated entry to the end of its day in Pacific time (08:00 UTC
 // the next day, covering PST), an upper bound on when the update deployed.
-// The year is whichever candidate lands closest to the patch epoch, which
-// handles December patches with January mid-patches.
+// An entry listing several dates, e.g. "AUGUST 31ST AND SEPTEMBER 1ST",
+// resolves to its last date. The year is whichever candidate lands closest
+// to the patch epoch, which handles December patches with January
+// mid-patches.
 export function midPatchDateEndMs(entry, patchEpochMs) {
-    const match = DATE_ENTRY_REGEX.exec(normalizeText(entry));
-    if (!match) {
+    const dates = [...normalizeText(entry).matchAll(ALL_DATES_REGEX)];
+    if (dates.length === 0) {
         return null;
     }
-    const month = MONTH_INDEX[match[1].slice(0, 3).toUpperCase()];
-    const day = Number(match[2]);
+    const [, monthName, dayText] = dates[dates.length - 1];
+    const month = MONTH_INDEX[monthName.slice(0, 3).toUpperCase()];
+    const day = Number(dayText);
     const referenceYear = new Date(patchEpochMs).getUTCFullYear();
     return [referenceYear - 1, referenceYear, referenceYear + 1]
         .map((year) => Date.UTC(year, month, day + 1, 8))
@@ -284,9 +292,9 @@ export function generateFinalOutput(
     });
     const epochValue = override ? Date.now() : Date.parse(timestamp);
 
-    // Cut at the earliest provable time the newest mid-patch was live: the
-    // end of its published day, or the moment we first saw it, whichever is
-    // earlier. Falls back to scrape time when no entry parses to a date.
+    // Cut at the end of the newest mid-patch's last published day, the
+    // canonical bound on when it deployed. Falls back to scrape time when
+    // no entry parses to a date.
     let midPatchEpochValue = epochValue;
     if (override) {
         midPatchEpochValue = Date.now();
@@ -294,9 +302,8 @@ export function generateFinalOutput(
         const dateEnds = midPatchDates
             .map((entry) => midPatchDateEndMs(entry, epochValue))
             .filter((ms) => ms !== null);
-        const latestEnd =
+        midPatchEpochValue =
             dateEnds.length > 0 ? Math.max(...dateEnds) : Date.now();
-        midPatchEpochValue = Math.min(Date.now(), latestEnd);
     }
 
     return {
