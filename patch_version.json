@@ -1,13 +1,9 @@
 {
-  "title": "Teamfight Tactics patch 18.1",
-  "url": "https://teamfighttactics.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-18-1",
-  "timestamp": "2026-09-02T08:00:00.000Z",
-  "epoch": 1787680800000,
-  "midPatchEpoch": 1788336000000,
-  "midPatchUpdateDates": [
-    "AUGUST 31ST AND SEPTEMBER 1ST",
-    "AUGUST 28TH",
-    "AUGUST 27TH"
-  ],
-  "patchVersion": "18.1d"
+  "title": "Teamfight Tactics patch 18.2",
+  "url": "https://teamfighttactics.leagueoflegends.com/en-us/news/game-updates/teamfight-tactics-patch-18-2",
+  "timestamp": "2026-09-09T18:00:00.000Z",
+  "epoch": 1788976800000,
+  "midPatchEpoch": 1788976800000,
+  "midPatchUpdateDates": [],
+  "patchVersion": "18.2"
 }
